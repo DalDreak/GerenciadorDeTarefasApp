@@ -40,22 +40,7 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCRgCw30rhB8V98sTTzVhH7YMlnV0kdoiE',
-    appId: '1:165992908399:web:461b5407ab0bf5e514af9a',
-    messagingSenderId: '165992908399',
-    projectId: 'gerenciamento-de-tarefas-2979d',
-    authDomain: 'gerenciamento-de-tarefas-2979d.firebaseapp.com',
-    storageBucket: 'gerenciamento-de-tarefas-2979d.firebasestorage.app',
-  );
-
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCRgCw30rhB8V98sTTzVhH7YMlnV0kdoiE',
-    appId: '1:165992908399:android:461b5407ab0bf5e514af9a',
-    messagingSenderId: '165992908399',
-    projectId: 'gerenciamento-de-tarefas-2979d',
-    storageBucket: 'gerenciamento-de-tarefas-2979d.firebasestorage.app',
-  );
+  
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'demo-api-key',
