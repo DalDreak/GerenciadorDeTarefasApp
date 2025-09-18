@@ -79,7 +79,6 @@ class FirebaseTaskService {
         .where('taskDate', isGreaterThanOrEqualTo: startOfDay.toIso8601String())
         .where('taskDate', isLessThanOrEqualTo: endOfDay.toIso8601String())
         .orderBy('taskDate')
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Task.fromMap(doc.id, doc.data()))

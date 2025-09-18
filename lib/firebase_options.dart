@@ -50,11 +50,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'demo-api-key',
-    appId: '1:123456789:android:demo',
-    messagingSenderId: '123456789',
-    projectId: 'gerenciador-tarefas-demo',
-    storageBucket: 'gerenciador-tarefas-demo.appspot.com',
+    apiKey: 'AIzaSyCRgCw30rhB8V98sTTzVhH7YMlnV0kdoiE',
+    appId: '1:165992908399:android:461b5407ab0bf5e514af9a',
+    messagingSenderId: '165992908399',
+    projectId: 'gerenciamento-de-tarefas-2979d',
+    storageBucket: 'gerenciamento-de-tarefas-2979d.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

@@ -1,166 +1,248 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'login.dart';
+import 'firebase_task_service.dart';
 
-class TodoPage extends StatefulWidget {
+class TaskListPage extends StatefulWidget {
   final DateTime selectedDate;
   
-  const TodoPage({super.key, required this.selectedDate});
+  const TaskListPage({super.key, required this.selectedDate});
 
   @override
-  State<TodoPage> createState() => _TodoPageState();
+  State<TaskListPage> createState() => _TaskListPageState();
 }
 
-class _TodoPageState extends State<TodoPage> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  List<Map<String, dynamic>> _tasks = [];
+class _TaskListPageState extends State<TaskListPage> {
+  final TextEditingController _taskController = TextEditingController();
+  final FirebaseTaskService _taskService = FirebaseTaskService();
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
+  void _addTask() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Adicionar Tarefa'),
+        content: TextField(
+          controller: _taskController,
+          decoration: InputDecoration(
+            hintText: 'Digite a tarefa...',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (_taskController.text.isNotEmpty) {
+                try {
+                  await _taskService.addTask(_taskController.text.trim(), widget.selectedDate);
+                  _taskController.clear();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Tarefa adicionada com sucesso!')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao adicionar tarefa: $e')),
+                  );
+                }
+              }
+            },
+            child: Text('Adicionar'),
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> _logout() async {
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => LoginPage()),
-        (route) => false,
+  void _removeTask(String taskId) async {
+    try {
+      await _taskService.removeTask(taskId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tarefa removida com sucesso!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao remover tarefa: $e')),
       );
     }
   }
 
-  void _showAddTaskDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Nova Tarefa'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Título',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _addTask();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Adicionar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _addTask() {
-    if (_titleController.text.isNotEmpty) {
-      setState(() {
-        _tasks.add({
-          'title': _titleController.text,
-          'description': _descriptionController.text,
-          'isCompleted': false,
-          'date': widget.selectedDate,
-        });
-      });
-      _titleController.clear();
-      _descriptionController.clear();
+  void _toggleTask(String taskId, bool isCompleted) async {
+    try {
+      await _taskService.toggleTaskCompletion(taskId, isCompleted);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao atualizar tarefa: $e')),
+      );
     }
-  }
-
-  void _toggleTask(int index) {
-    setState(() {
-      _tasks[index]['isCompleted'] = !_tasks[index]['isCompleted'];
-    });
-  }
-
-  void _deleteTask(int index) {
-    setState(() {
-      _tasks.removeAt(index);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateFormatter = DateFormat('dd/MM/yyyy');
-    final formattedDate = dateFormatter.format(widget.selectedDate);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tarefas - $formattedDate'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
+        title: Text('Tarefas - ${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year}'),
       ),
-      body: _tasks.isEmpty
-          ? const Center(
-              child: Text(
-                'Nenhuma tarefa para este dia.\nToque no + para adicionar uma nova tarefa.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _tasks.length,
-              itemBuilder: (context, index) {
-                final task = _tasks[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: Checkbox(
-                      value: task['isCompleted'],
-                      onChanged: (value) => _toggleTask(index),
-                    ),
-                    title: Text(
-                      task['title'],
-                      style: TextStyle(
-                        decoration: task['isCompleted']
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                      ),
-                    ),
-                    subtitle: task['description'].isNotEmpty
-                        ? Text(task['description'])
-                        : null,
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteTask(index),
-                    ),
-                  ),
-                );
-              },
-            ),
+      body: StreamBuilder<List<Task>>(
+         stream: _taskService.getTasksByDate(widget.selectedDate),
+         builder: (context, snapshot) {
+           if (snapshot.connectionState == ConnectionState.waiting) {
+             return const Center(child: CircularProgressIndicator());
+           }
+           
+           if (snapshot.hasError) {
+             return Center(
+               child: Text(
+                 'Erro ao carregar tarefas: ${snapshot.error}',
+                 style: const TextStyle(fontSize: 18, color: Colors.red),
+               ),
+             );
+           }
+           
+           final tasks = snapshot.data ?? [];
+           
+           if (tasks.isEmpty) {
+             return const Center(
+               child: Text(
+                 'Nenhuma tarefa adicionada',
+                 style: TextStyle(fontSize: 18, color: Colors.grey),
+               ),
+             );
+           }
+           
+           // Separar tarefas pendentes e concluídas
+           final pendingTasks = tasks.where((task) => !task.isCompleted).toList();
+           final completedTasks = tasks.where((task) => task.isCompleted).toList();
+           
+           // Ordenar alfabeticamente
+           pendingTasks.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+           completedTasks.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+           
+           return SingleChildScrollView(
+             padding: const EdgeInsets.all(16.0),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 // Seção de Tarefas Pendentes
+                 Card(
+                   elevation: 4,
+                   child: Padding(
+                     padding: const EdgeInsets.all(16.0),
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Row(
+                           children: [
+                             Icon(Icons.pending_actions, color: Colors.orange),
+                             const SizedBox(width: 8),
+                             Text(
+                               'Tarefas Pendentes (${pendingTasks.length})',
+                               style: const TextStyle(
+                                 fontSize: 18,
+                                 fontWeight: FontWeight.bold,
+                                 color: Colors.orange,
+                               ),
+                             ),
+                           ],
+                         ),
+                         const SizedBox(height: 12),
+                         if (pendingTasks.isEmpty)
+                           const Padding(
+                             padding: EdgeInsets.symmetric(vertical: 16.0),
+                             child: Text(
+                               'Nenhuma tarefa pendente',
+                               style: TextStyle(color: Colors.grey, fontSize: 16),
+                             ),
+                           )
+                         else
+                           ...pendingTasks.map((task) => Card(
+                             margin: const EdgeInsets.only(bottom: 8),
+                             child: ListTile(
+                               leading: Checkbox(
+                                 value: task.isCompleted,
+                                 onChanged: (value) => _toggleTask(task.id, value ?? false),
+                               ),
+                               title: Text(
+                                 task.title,
+                                 style: const TextStyle(fontSize: 16),
+                               ),
+                               trailing: IconButton(
+                                 icon: const Icon(Icons.delete, color: Colors.red),
+                                 onPressed: () => _removeTask(task.id),
+                               ),
+                             ),
+                           )).toList(),
+                       ],
+                     ),
+                   ),
+                 ),
+                 
+                 const SizedBox(height: 16),
+                 
+                 // Seção de Tarefas Concluídas
+                 Card(
+                   elevation: 4,
+                   child: Padding(
+                     padding: const EdgeInsets.all(16.0),
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Row(
+                           children: [
+                             Icon(Icons.check_circle, color: Colors.green),
+                             const SizedBox(width: 8),
+                             Text(
+                               'Tarefas Concluídas (${completedTasks.length})',
+                               style: const TextStyle(
+                                 fontSize: 18,
+                                 fontWeight: FontWeight.bold,
+                                 color: Colors.green,
+                               ),
+                             ),
+                           ],
+                         ),
+                         const SizedBox(height: 12),
+                         if (completedTasks.isEmpty)
+                           const Padding(
+                             padding: EdgeInsets.symmetric(vertical: 16.0),
+                             child: Text(
+                               'Nenhuma tarefa concluída',
+                               style: TextStyle(color: Colors.grey, fontSize: 16),
+                             ),
+                           )
+                         else
+                           ...completedTasks.map((task) => Card(
+                             margin: const EdgeInsets.only(bottom: 8),
+                             child: ListTile(
+                               leading: Checkbox(
+                                 value: task.isCompleted,
+                                 onChanged: (value) => _toggleTask(task.id, value ?? false),
+                               ),
+                               title: Text(
+                                 task.title,
+                                 style: const TextStyle(
+                                   fontSize: 16,
+                                   decoration: TextDecoration.lineThrough,
+                                   color: Colors.grey,
+                                 ),
+                               ),
+                               trailing: IconButton(
+                                 icon: const Icon(Icons.delete, color: Colors.red),
+                                 onPressed: () => _removeTask(task.id),
+                               ),
+                             ),
+                           )).toList(),
+                       ],
+                     ),
+                   ),
+                 ),
+               ],
+             ),
+           );
+         },
+       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
+        onPressed: _addTask,
         child: const Icon(Icons.add),
       ),
     );
